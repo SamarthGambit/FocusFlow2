@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFlow</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes wave {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .gradient-bg {
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #334155);
+      background-size: 400% 400%;
+      animation: wave 15s ease infinite;
+    }
+    .neumorphic {
+      border-radius: 20px;
+      background: #0f172a;
+      box-shadow: 20px 20px 60px #0d1322, -20px -20px 60px #111b32;
+    }
+    .progress-ring {
+      transition: stroke-dashoffset 0.3s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    /* Full Screen Button styling */
+    .fullscreen-btn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 50;
+      padding: 0.5rem 1rem;
+      background-color: #0f172a;
+      color: #fff;
+      border: 2px solid #1e293b;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .fullscreen-btn:hover {
+      background-color: #1e293b;
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Full Screen Toggle Button -->
+  <button id="fullScreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">Full Screen</button>
+
+  <div class="container mx-auto px-4 py-8 h-screen flex flex-col">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        FocusFlow
+      </h1>
+      <p class="text-gray-400">Track your learning journey</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 grid lg:grid-cols-3 gap-8">
+      <!-- Timer and Session Controls -->
+      <div class="neumorphic p-8 lg:col-span-2 flex flex-col">
+        <div class="flex-1 flex items-center justify-center">
+          <div class="relative">
+            <svg class="w-64 h-64">
+              <circle class="text-gray-800" stroke-width="8" stroke="currentColor" fill="transparent" r="116" cx="128" cy="128" />
+              <circle class="progress-ring text-cyan-400"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="116"
+                      cx="128"
+                      cy="128"
+                      stroke-dasharray="730"
+                      stroke-dashoffset="730" />
+            </svg>
+            <div id="timer" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl font-mono">00:00:00</div>
+          </div>
+        </div>
+
+        <div class="flex justify-center space-x-4 mt-8">
+          <div class="mb-6">
+            <input type="text" id="tagInput" class="w-full p-3 bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Enter study topic" />
+            <button onclick="createSession()" id="createBtn" class="w-full py-3 mt-4 bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-all mb-8 hover:scale-[1.02]">
+              Create Session
+            </button>
+          </div>
+          <button onclick="quitSession()" id="quitBtn" class="hidden px-6 py-3 bg-rose-600 rounded-lg hover:bg-rose-700 transition-all hover:scale-105">Quit</button>
+          <button onclick="pauseResumeSession()" id="pauseBtn" class="hidden px-6 py-3 bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-all hover:scale-105">Pause</button>
+          <button onclick="restartSession()" id="restartBtn" class="hidden px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition-all hover:scale-105">Restart</button>
+        </div>
+      </div>
+
+      <!-- Recent Sessions & Study Stats -->
+      <div class="neumorphic p-8 flex flex-col space-y-8">
+        <!-- Recent Sessions -->
+        <div class="flex-1 overflow-auto">
+          <h3 class="text-lg font-semibold mb-4">Recent Sessions</h3>
+          <div id="recentSessions" class="space-y-3"></div>
+        </div>
+        <!-- Study Stats Panel (Only Today's Study Duration and Streak Counter) -->
+        <div>
+          <h3 class="text-lg font-semibold mb-4 animate-pulse">Study Stats</h3>
+          <div class="space-y-4">
+            <!-- Today's Study Duration -->
+            <div class="p-4 bg-slate-800 rounded-lg">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold">Today's Study Duration</span>
+                <span id="todayDuration" class="text-2xl">0h 0m 0s</span>
+              </div>
+            </div>
+            <!-- Streak Counter -->
+            <div class="p-4 bg-slate-800 rounded-lg">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold">Streak Counter</span>
+                <span id="streakCounter" class="text-2xl">0 days</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Section -->
+  <script>
+    // Full Screen Toggle Functionality
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+        document.getElementById('fullScreenBtn').textContent = "Exit Full Screen";
+      } else {
+        document.exitFullscreen();
+        document.getElementById('fullScreenBtn').textContent = "Full Screen";
+      }
+    }
+
+    // Initialize Firebase
+    const firebaseConfig = {
+  apiKey: "AIzaSyDYOfUbCK1SweYNIhv_F-1SYLZqLhTtXdY",
+  authDomain: "focusflow-2.firebaseapp.com",
+  projectId: "focusflow-2",
+  storageBucket: "focusflow-2.firebasestorage.app",
+  messagingSenderId: "589818054473",
+  appId: "1:589818054473:web:77fbb90178969e760e7c98",
+  measurementId: "G-LC7ED6K5F0"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Timer variables
+    let timer;
+    let isRunning = false;
+    let seconds = 0;
+    const timerElement = document.getElementById('timer');
+    const progressRing = document.querySelector('.progress-ring');
+    const circumference = 2 * Math.PI * 116;
+    progressRing.style.strokeDasharray = circumference;
+    progressRing.style.strokeDashoffset = circumference;
+
+    function updateProgress() {
+      const progress = (seconds % 60) / 60;
+      const offset = circumference - progress * circumference;
+      progressRing.style.strokeDashoffset = offset;
+    }
+
+    function updateTimer() {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      timerElement.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      updateProgress();
+    }
+
+    // Create Session with a 5-second delay before timer start
+    function createSession() {
+      const tag = document.getElementById('tagInput').value.trim();
+      if (!tag) {
+        console.log("Session name is missing.");
+        return;
+      }
+      // Hide the create session controls and show the timer controls
+      document.getElementById('tagInput').classList.add('hidden');
+      document.getElementById('createBtn').classList.add('hidden');
+      document.getElementById('quitBtn').classList.remove('hidden');
+      document.getElementById('pauseBtn').classList.remove('hidden');
+      document.getElementById('restartBtn').classList.remove('hidden');
+
+      console.log("Creating session...");
+      setTimeout(() => {
+        console.log("Timer started after 5 seconds.");
+        isRunning = true;
+        timer = setInterval(() => {
+          seconds++;
+          updateTimer();
+        }, 1000);
+      }, 5000);
+    }
+
+    // Quit Session: Save session details to Firestore (including total seconds)
+    function quitSession() {
+      if (seconds < 10) {
+        alert('Session must run for at least 10 seconds before quitting.');
+        return;
+      }
+      clearInterval(timer);
+      isRunning = false;
+      const tag = document.getElementById('tagInput').value.trim();
+      if (!tag) return;
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      const session = {
+        duration: `${hrs}h ${mins}m ${secs}s`,
+        seconds: seconds,
+        tag: tag,
+        date: new Date().toISOString()
+      };
+
+      db.collection('sessions').add(session)
+        .then(() => {
+          // Reset timer and UI controls after saving
+          document.getElementById('tagInput').value = '';
+          seconds = 0;
+          updateTimer();
+          loadSessions();
+          loadStats();
+        })
+        .catch(error => console.error('Error saving session:', error));
+
+      // Reset controls for the next session
+      document.getElementById('createBtn').classList.remove('hidden');
+      document.getElementById('tagInput').classList.remove('hidden');
+      document.getElementById('quitBtn').classList.add('hidden');
+      document.getElementById('pauseBtn').classList.add('hidden');
+      document.getElementById('restartBtn').classList.add('hidden');
+      document.getElementById('pauseBtn').textContent = 'Pause';
+    }
+
+    // Pause/Resume Session Timer
+    function pauseResumeSession() {
+      if (isRunning) {
+        clearInterval(timer);
+        isRunning = false;
+        document.getElementById('pauseBtn').textContent = 'Resume';
+      } else {
+        isRunning = true;
+        timer = setInterval(() => {
+          seconds++;
+          updateTimer();
+        }, 1000);
+        document.getElementById('pauseBtn').textContent = 'Pause';
+      }
+    }
+
+    // Restart Session Timer
+    function restartSession() {
+      clearInterval(timer);
+      seconds = 0;
+      updateTimer();
+      isRunning = true;
+      timer = setInterval(() => {
+        seconds++;
+        updateTimer();
+      }, 1000);
+    }
+
+    // Load and display recent sessions (last 5 sessions from today)
+    async function loadSessions() {
+      const recentSessionsDiv = document.getElementById('recentSessions');
+      recentSessionsDiv.innerHTML = '';
+      const today = new Date().toISOString().split('T')[0];
+      const querySnapshot = await db.collection('sessions')
+        .where('date', '>=', today)
+        .orderBy('date', 'desc')
+        .limit(5)
+        .get();
+
+      querySnapshot.forEach(doc => {
+        const session = doc.data();
+        const div = document.createElement('div');
+        div.className = 'session-entry p-3 bg-slate-800 rounded-lg';
+        div.innerHTML = `<div><strong>${session.tag}</strong> - ${session.duration}</div>`;
+        recentSessionsDiv.appendChild(div);
+      });
+    }
+
+    // Utility: Format seconds as "Xh Ym Zs"
+    function formatDuration(totalSeconds) {
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+      return `${hrs}h ${mins}m ${secs}s`;
+    }
+
+    // Load Study Statistics:
+    // Calculate today's study duration and the streak counter.
+    async function loadStats() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  const querySnapshot = await db.collection('sessions').get();
+  let todaySeconds = 0;
+  const sessionDays = new Set();
+
+  querySnapshot.forEach(doc => {
+    const session = doc.data();
+    if (session.date) {
+      const sessionDate = new Date(session.date);
+      const dateStr = sessionDate.toISOString().split('T')[0];
+      sessionDays.add(dateStr);
+
+      if (dateStr === todayStr && session.seconds != null) {
+        todaySeconds += session.seconds;
+      }
+    }
+  });
+
+  // Update today's duration display.
+  document.getElementById('todayDuration').textContent = formatDuration(todaySeconds);
+
+  // Find yesterday's date
+  let yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  let streak = 0;
+  let currentDate = new Date(now);
+  currentDate.setHours(0, 0, 0, 0);
+
+  // If today has a session, streak continues
+  if (sessionDays.has(todayStr)) {
+    streak = 1;
+  }
+
+  // Continue counting streak backward from today or yesterday
+  while (true) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    if (sessionDays.has(dateStr)) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  // If yesterday had no session and today doesn't either, reset streak
+  if (!sessionDays.has(yesterdayStr) && !sessionDays.has(todayStr)) {
+    streak = 0;
+  }
+
+  document.getElementById('streakCounter').textContent = `${streak} day${streak === 1 ? '' : 's'}`;
+}
+
+
+    // Initial loading of sessions and stats on page load
+    loadSessions();
+    loadStats();
+  </script>
+</body>
+</html>
