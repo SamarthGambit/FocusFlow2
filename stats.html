@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFlow - Extended Stats</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 20px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .animate-fadeInUp {
+      animation: fadeInUp 0.6s ease-out both;
+    }
+    /* Background gradient for the entire page */
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Enhanced Responsive Navbar -->
+  <header class="py-12 text-center relative overflow-hidden">
+    <!-- Gradient background animation -->
+    <div class="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 blur-3xl opacity-20"></div>
+
+    <h1 class="relative text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 animate-pulse">
+      FocusFlow
+    </h1>
+
+    <p class="relative mt-4 text-lg text-gray-300 animate-fadeInUp">
+      Track your learning journey
+    </p>
+
+    <!-- Subtle glowing effect -->
+    <div class="absolute -top-10 left-1/3 w-32 h-32 bg-cyan-400 opacity-10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-40 h-40 bg-purple-500 opacity-10 rounded-full blur-3xl"></div>
+  </header>
+
+
+  <!-- Add some top margin to push the content below the fixed navbar -->
+  <div class="pt-20"></div>
+
+ 
+
+  <!-- Stats Container -->
+  <main class="container mx-auto px-4 pb-16">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Today's Duration Card -->
+      <div class="bg-slate-800 bg-opacity-90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition duration-300 animate-fadeInUp">
+        <div class="flex items-center space-x-3 mb-3 border-b pb-2 border-slate-700">
+          <!-- Clock Icon SVG -->
+          <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h2 class="text-2xl font-semibold">Today's Duration</h2>
+        </div>
+        <p id="todayDuration" class="text-3xl font-bold">Loading...</p>
+      </div>
+
+      <!-- Last 7 Days Card -->
+      <div class="bg-slate-800 bg-opacity-90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition duration-300 animate-fadeInUp">
+        <div class="flex items-center space-x-3 mb-3 border-b pb-2 border-slate-700">
+          <!-- Calendar Icon SVG -->
+          <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-10 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <h2 class="text-2xl font-semibold">Last 7 Days</h2>
+        </div>
+        <p id="weekDuration" class="text-3xl font-bold">Loading...</p>
+      </div>
+
+      <!-- Last 30 Days Card -->
+      <div class="bg-slate-800 bg-opacity-90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition duration-300 animate-fadeInUp">
+        <div class="flex items-center space-x-3 mb-3 border-b pb-2 border-slate-700">
+          <!-- Calendar Icon SVG with different color -->
+          <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-10 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <h2 class="text-2xl font-semibold">Last 30 Days</h2>
+        </div>
+        <p id="monthDuration" class="text-3xl font-bold">Loading...</p>
+      </div>
+
+      <!-- Current Streak Card -->
+      <div class="bg-slate-800 bg-opacity-90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition duration-300 animate-fadeInUp">
+        <div class="flex items-center space-x-3 mb-3 border-b pb-2 border-slate-700">
+          <!-- Flame Icon SVG -->
+          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a3 3 0 00-3 3c0 1.306.835 2.417 2 2.83V12a2 2 0 01-2 2H9a3 3 0 003 3 3 3 0 003-3c0-1.306-.835-2.417-2-2.83V7a2 2 0 012-2h.5a3 3 0 000-6H12z"></path>
+          </svg>
+          <h2 class="text-2xl font-semibold">Current Streak</h2>
+        </div>
+        <p id="streak" class="text-3xl font-bold">Loading...</p>
+        <p class="mt-2 text-sm text-gray-400">Consecutive days</p>
+      </div>
+
+      <!-- Today's Target Card -->
+      <div class="bg-slate-800 bg-opacity-90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition duration-300 animate-fadeInUp">
+        <div class="flex items-center space-x-3 mb-3 border-b pb-2 border-slate-700">
+          <!-- Target Icon SVG -->
+          <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.24 7.76a6 6 0 11-8.48 8.48"></path>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+          </svg>
+          <h2 class="text-2xl font-semibold">Today's Target</h2>
+        </div>
+        <p id="targetStatus" class="text-3xl font-bold">Loading...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- JavaScript Section -->
+  <script>
+    // Firebase Initialization
+    const firebaseConfig = {
+      apiKey: "AIzaSyC09414iU2-WTfa3Q14SGMxF7N34r1Jrk4",
+      authDomain: "focusflow-3a845.firebaseapp.com",
+      projectId: "focusflow-3a845",
+      storageBucket: "focusflow-3a845.firebaseapp.com",
+      messagingSenderId: "1048441462026",
+      appId: "1:1048441462026:web:9a4f2a7eedd5db9528eef3",
+      measurementId: "G-LDWL8N6ZK2"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Utility: Convert seconds to a human-readable format.
+    function formatDuration(totalSeconds) {
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+      return `${hrs}h ${mins}m ${secs}s`;
+    }
+
+    // Calculate and load extended stats.
+    async function loadExtendedStats() {
+      try {
+        const snapshot = await db.collection('sessions').get();
+        const sessions = [];
+        snapshot.forEach(doc => sessions.push(doc.data()));
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
+        // Define time boundaries for week and month.
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 6);
+        const monthAgo = new Date();
+        monthAgo.setDate(now.getDate() - 29);
+
+        let todaySeconds = 0,
+            weekSeconds = 0,
+            monthSeconds = 0;
+        const sessionDays = new Set();
+
+        sessions.forEach(session => {
+          if (session.date && session.seconds != null) {
+            const sessionDate = new Date(session.date);
+            const dateStr = sessionDate.toISOString().split('T')[0];
+            sessionDays.add(dateStr);
+
+            if (dateStr === todayStr) {
+              todaySeconds += session.seconds;
+            }
+            if (sessionDate >= weekAgo && sessionDate <= now) {
+              weekSeconds += session.seconds;
+            }
+            if (sessionDate >= monthAgo && sessionDate <= now) {
+              monthSeconds += session.seconds;
+            }
+          }
+        });
+
+        // Calculate consecutive day streak.
+        let streak = 0;
+        let checkDate = new Date(now);
+        checkDate.setHours(0, 0, 0, 0);
+        while (true) {
+          const checkStr = checkDate.toISOString().split('T')[0];
+          if (sessionDays.has(checkStr)) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+
+        // Check if today's target of 4 hours (14400 seconds) is achieved.
+        const targetSeconds = 14400;
+        const targetAchieved = todaySeconds >= targetSeconds;
+        const targetRemaining = targetSeconds - todaySeconds;
+
+        // Update the UI.
+        document.getElementById('todayDuration').textContent = formatDuration(todaySeconds);
+        document.getElementById('weekDuration').textContent = weekSeconds > 0 ? formatDuration(weekSeconds) : "Not enough data";
+        document.getElementById('monthDuration').textContent = monthSeconds > 0 ? formatDuration(monthSeconds) : "Not enough data";
+        document.getElementById('streak').textContent = streak;
+        document.getElementById('targetStatus').textContent = targetAchieved 
+          ? "Target Achieved!" 
+          : "Remaining: " + formatDuration(targetRemaining);
+      } catch (error) {
+        console.error("Error loading extended stats:", error);
+      }
+    }
+
+    // Load stats on page load.
+    window.addEventListener('load', loadExtendedStats);
+
+   
+  </script>
+</body>
+</html>
